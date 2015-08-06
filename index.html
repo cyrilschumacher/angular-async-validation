@@ -1,0 +1,73 @@
+<html ng-app="angular-async-validation">
+
+<head>
+    <meta charset="utf-8" />
+    <title>angular-async-validation</title>
+    <style type="text/css">
+        input.invalid {
+            border:1px solid #f00;
+        }
+    </style>
+</head>
+
+<body ng-controller="myController">
+    <form name="myForm">
+        <h1>angular-async-validation</h1>
+        <p>
+            <label>Text of more <b>3 characters</b></label>
+            <span>:</span>
+            <input async-validation validator="validatorAsync(val)"
+                   ng-class="{invalid: myForm.customInput.$error.custom}"
+                   ng-model="customInput"
+                   ng-model-options="{ debounce: 1000 }" 
+                   ng-disabled="myForm.customInput.$inProgress"
+                   name="customInput" 
+                   type="text" /> 
+        </p>
+        <p>
+            <span ng-hide="myForm.customInput.$inProgress">
+                The input is <b>{{myForm.customInput.$error.custom ? 'invalid' : 'valid'}}!</b>
+            </span>
+            <span ng-hide="!myForm.customInput.$inProgress">
+                In progress...
+            </span>
+        </p>
+    </form>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.js"></script>
+    <script type="text/javascript">
+        var app = angular.module('angular-async-validation', []);
+        app.directive('asyncValidation', function () {
+            return {
+                require: 'ngModel',
+                scope: {
+                    validator: '&'
+                },
+                link: function (scope, elem, attr, ngModel) {
+                    ngModel.$parsers.unshift(function(value) {
+                        ngModel.$inProgress = true;
+                        scope.validator({val: value}).then(function (data) {
+                            ngModel.$inProgress = false;
+                            ngModel.$setValidity('custom', data);
+                            return data; 
+                        });
+                    });
+                }
+            }
+        });
+        app.controller('myController', function ($scope, $q) {
+            $scope.validatorAsync = function (val) {                
+                var deferred = $q.defer();
+                
+                var delay = Math.floor(Math.random() * 3000) + 1000;
+                setTimeout(function () {
+                    var result = val.length > 3;
+                    deferred.resolve(result);
+                }, delay);
+                
+                return deferred.promise;
+            };
+        });
+    </script>
+</body>
+
+</html>
